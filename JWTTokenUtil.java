@@ -1,3 +1,5 @@
+package com.learn.security.util;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -11,15 +13,18 @@ public class JWTTokenUtil {
 
     /**
      * 采用salt加密
-     * @param claims
+     * @param id
+     * @param rules   不能为null
      * @param subject
-     * @param expirationSeconds
+     * @param expirationSeconds   单位为毫秒
      * @param salt
      * @return
      */
-    public static String generateToken(Map claims, String subject, int expirationSeconds, String salt) {
+    public static String generateToken(String id, String subject,Map rules,int expirationSeconds, String salt) {
+
         return Jwts.builder()
-                .setClaims(claims)
+                .setId(id)
+                .setClaims(rules)
                 .setSubject(subject)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationSeconds))
@@ -29,15 +34,17 @@ public class JWTTokenUtil {
 
     /**
      * 采用公钥加密
-     * @param claims
+     * @param id
+     * @param roles 不能为null
      * @param subject
-     * @param expirationSeconds
+     * @param expirationSeconds   单位为毫秒
      * @param publicKey
      * @return
      */
-    public static String generateToken(Map claims, String subject, int expirationSeconds, PublicKey publicKey) {
+    public static String generateToken(String id, String subject, Map roles, int expirationSeconds, PublicKey publicKey) {
         return Jwts.builder()
-                .setClaims(claims)
+                .setId(id)
+                .setClaims(roles)
                 .setSubject(subject)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationSeconds))
