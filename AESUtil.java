@@ -1,74 +1,115 @@
-package parametersUtil;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.SecureRandom;
+import org.apache.commons.codec.binary.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import org.apache.commons.codec.binary.Base64;
 
-public class AESUtil {
-	
-	/**
-	 * aes解密
-	 */
-	public static String aesDecode(String encodeRules,String content)throws Exception{
-        KeyGenerator keygen=KeyGenerator.getInstance("AES");
-        keygen.init(128, new SecureRandom(encodeRules.getBytes()));
-        SecretKey original_key=keygen.generateKey();
-        byte [] raw=original_key.getEncoded();
-        SecretKey key=new SecretKeySpec(raw, "AES");
-        Cipher cipher=Cipher.getInstance("AES");
-        cipher.init(Cipher.DECRYPT_MODE, key);
-        byte [] byte_content= Base64.decodeBase64(content);
-        byte [] byte_decode=cipher.doFinal(byte_content);
-        String aes_decode = new String(byte_decode,"utf-8");
-        
-        return aes_decode;
+/**
+ * AES加密与解密工具类
+ */
+public class AESUtils {
 
-	}
-	
-	public static String aesDecode(String key,String iv ,String content)throws Exception{
-		byte[] byte1 = Base64.decodeBase64(content);
-        IvParameterSpec ivSpec = new IvParameterSpec(iv.getBytes());
-        SecretKeySpec k = new SecretKeySpec(key.getBytes(), "AES");
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.DECRYPT_MODE, k, ivSpec);
+    /**
+     * AES加密
+     * @param plaintext 明文
+     * @param seed SecureRandom的种子
+     * @param keySize key的长度
+     * @return
+     */
+    public static String encode(String plaintext, String seed, int keySize) {
+        if (plaintext == null || plaintext.length() == 0){
+            return null;
+        }
+        try {
+            byte[] encodeKey = generateKey(seed, keySize);
+            SecretKey secretKey = new SecretKeySpec(encodeKey, "AES");
+            Cipher cipher = Cipher.getInstance("AES");
+            byte[] plaintextBytes = plaintext.getBytes("UTF-8");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            byte[] ciphertextBytes = cipher.doFinal(plaintextBytes);
+            String ciphertext = Base64.encodeBase64String(ciphertextBytes);
+            return ciphertext;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
-        byte[] ret = cipher.doFinal(byte1);
+    /**
+     * AES解密
+     * @param ciphertext 密文
+     * @param key key
+     * @return
+     */
+    public static String decode(String ciphertext, String key) {
+        if (ciphertext == null || ciphertext.length() ==0 ) {
+            return null;
+        }
+        if (ciphertext.trim().length() < 19) {
+            return ciphertext;
+        }
+        byte[] ciphertextBytes = Base64.decodeBase64(ciphertext);
+        try {
+            byte[] encodeKey = Base64.decodeBase64(key);
+            SecretKey secretKey = new SecretKeySpec(encodeKey, "AES");
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            byte[] plaintext = cipher.doFinal(ciphertextBytes);
+            return new String(plaintext);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
-    return new String(ret, "utf-8");
-	}
-	
-	/**
-	 * aes加密
-	 */
-	public static String aesEncode(String encodeRules,String content)throws Exception{
-        KeyGenerator keygen=KeyGenerator.getInstance("AES");
-        keygen.init(128, new SecureRandom(encodeRules.getBytes()));
-        SecretKey original_key=keygen.generateKey();
-        byte [] raw=original_key.getEncoded();
-        SecretKey key=new SecretKeySpec(raw, "AES");
-        Cipher cipher=Cipher.getInstance("AES");
-        cipher.init(Cipher.ENCRYPT_MODE, key);
-        byte [] byte_encode=content.getBytes("utf-8");
-        byte [] byte_AES=cipher.doFinal(byte_encode);
-        String AES_encode=Base64.encodeBase64String(byte_AES);
-        
-        return AES_encode;
-	}
-	
-	public static String aesEncode(String key,String iv,String content)throws Exception{
-		byte[] raw = key.getBytes();
-        SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        IvParameterSpec iv1 = new IvParameterSpec(iv.getBytes());
-        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv1);
-        byte[] encrypted = cipher.doFinal(content.getBytes());
-        String aes_decode = Base64.encodeBase64String(encrypted);
-        
-        return aes_decode;
-	}
-	
+    /**
+     * 生成key
+     * @param seed SecureRandom的种子
+     * @param keySize key的长度
+     * @param filePath 保存key的路径
+     */
+    public static void generateKey(String seed, int keySize, String filePath){
+        try {
+            //实例化一个AES KeyGenerator
+            KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+            random.setSeed(seed.getBytes());
+            keyGenerator.init(keySize, random);
+            //生成key
+            SecretKey secretKey = keyGenerator.generateKey();
+            //保存到指定路径
+            Path path = Paths.get(filePath + "/aes.key");
+            Files.write(path, Base64.encodeBase64(secretKey.getEncoded()));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 生成key
+     * @param seed SecureRandom的种子
+     * @param keySize key的长度
+     * @return
+     */
+    public static byte[] generateKey(String seed, int keySize){
+        try {
+            //实例化一个AES KeyGenerator
+            KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+            random.setSeed(seed.getBytes());
+            keyGenerator.init(keySize, random);
+            //生成key
+            SecretKey secretKey = keyGenerator.generateKey();
+            return secretKey.getEncoded();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }
+
